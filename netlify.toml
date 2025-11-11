@@ -1,0 +1,7 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+
+# Optional: uncomment to force npm to ignore peer deps during Netlify installs
+# [build.environment]
+#   NPM_FLAGS = "--legacy-peer-deps"
