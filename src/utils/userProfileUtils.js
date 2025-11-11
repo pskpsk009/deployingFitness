@@ -20,7 +20,10 @@ export const authenticatedFetch = async (url, options = {}) => {
   };
 
   try {
-    const response = await fetch(url.startsWith("http") ? url : `${API_BASE}${url}`, { ...options, headers });
+    const response = await fetch(
+      url.startsWith("http") ? url : `${API_BASE}${url}`,
+      { ...options, headers }
+    );
     if (response.status === 401 || response.status === 403) {
       console.error("Token is invalid or expired.");
       localStorage.removeItem("token"); // Remove invalid token
@@ -34,7 +37,8 @@ export const authenticatedFetch = async (url, options = {}) => {
 };
 
 export const loadUserProfile = async () => {
-  const response = await authenticatedFetch("/user/User");
+  // Call /me which returns the profile for the authenticated token
+  const response = await authenticatedFetch("/me");
   if (response) {
     if (response.ok) {
       const data = await response.json();

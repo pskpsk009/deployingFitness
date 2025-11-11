@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -6,10 +7,15 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 const prisma = new PrismaClient();
-const SECRET_KEY = 'your_secret_key'; // Replace with a secure key
+
+// Use SECRET_KEY from environment for security; fallback to a default for local dev
+const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key';
+
+// Allow the frontend origin to be configured via env; default to allowing all origins in dev
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
 
 const corsOptions = {
-  origin: 'http://localhost:3000', // Allow requests from the frontend
+  origin: FRONTEND_ORIGIN,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
@@ -18,8 +24,10 @@ app.use(cors(corsOptions)); // Apply the CORS middleware with the specified opti
 app.use(bodyParser.json());
 
 app.use((req, res, next) => {
+  // Relax CSP for development/testing; in production tighten this.
   res.setHeader('Content-Security-Policy', "default-src *; connect-src *;");
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000'); // Explicitly allow requests from the frontend
+  // Mirror CORS origin header
+  res.setHeader('Access-Control-Allow-Origin', FRONTEND_ORIGIN === '*' ? '*' : FRONTEND_ORIGIN);
   next();
 });
 
@@ -96,6 +104,28 @@ app.get('/user/:username', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("Error fetching user profile:", error);
     res.status(500).json({ success: false, message: 'An error occurred. Please try again later.' });
+  }
+});
+
+// New /me endpoint: return authenticated user's profile without requiring username param
+app.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const username = req.user.username;
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+    res.json({
+      success: true,
+      data: {
+        username: user.username,
+        weight: user.weight,
+        height: user.height,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching /me profile:', error);
+    res.status(500).json({ success: false, message: 'An error occurred.' });
   }
 });
 
