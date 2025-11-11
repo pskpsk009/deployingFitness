@@ -1,6 +1,6 @@
 [build]
   command = "cd api && npm install --legacy-peer-deps && npx prisma generate && cd .. && npm run build"
-  functions = "netlify/functions"
+  functions = "api/netlify/functions"
   publish = "build"
 
 [[redirects]]
