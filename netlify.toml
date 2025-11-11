@@ -1,7 +1,21 @@
 [build]
-  command = "cd backend && npm install --legacy-peer-deps && npx prisma generate && cd .. && npm run build"
+  command = "cd api && npm install --legacy-peer-deps && npx prisma generate && cd .. && npm run build"
+  functions = "netlify/functions"
   publish = "build"
-  functions = "backend/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# SPA fallback
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+[build]
+  command = "npm run build"
+  publish = "build"
 
 [[redirects]]
   from = "/*"
