@@ -7,7 +7,9 @@ import Logger from "./components/Logger";
 import Home from "./components/Home";
 
 const App = () => {
-  const [currentStep, setCurrentStep] = useState(process.env.REACT_APP_SKIP_POPUP === "true" ? "login" : "popup"); // Manage the current step in the flow
+  const [currentStep, setCurrentStep] = useState(
+    process.env.REACT_APP_SKIP_POPUP === "true" ? "login" : "popup"
+  ); // Manage the current step in the flow
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
 
@@ -50,6 +52,38 @@ const App = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     console.log("Token on page load:", token); // Debugging log
+  }, []);
+
+  // Defensive: some browser extensions inject an overlay (e.g., elements with
+  // id starting with "give-freely-root" or data-extension-name attributes) that
+  // can visually block the app. Proactively remove/hide these for a few seconds
+  // after mount so users can see the login.
+  useEffect(() => {
+    const selectors = [
+      '[id^="give-freely-root"]',
+      '[data-extension-name="Volume Booster"]',
+      '#give-freely-root',
+    ];
+    const nuke = () => {
+      try {
+        selectors.forEach((sel) => {
+          document.querySelectorAll(sel).forEach((el) => {
+            // hide and attempt removal; hiding prevents interaction even if removal fails
+            el.style.setProperty('display', 'none', 'important');
+            el.style.setProperty('pointer-events', 'none', 'important');
+            try { el.remove(); } catch (_) {}
+          });
+        });
+      } catch (_) {}
+    };
+    // Run immediately and then on a short interval for a few seconds
+    nuke();
+    const interval = setInterval(nuke, 400);
+    const stop = setTimeout(() => clearInterval(interval), 6000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(stop);
+    };
   }, []);
 
   const handlePopupClose = () => {
