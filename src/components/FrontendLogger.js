@@ -13,7 +13,7 @@ import {
 import { Line } from "react-chartjs-2"; // Import chart library
 import CaloriesBurntPage from "./CaloriesBurntPage";
 import BMIProgressPage from "./BMIProgressPage";
-import { saveUserProfile, loadUserProfile } from "../utils/userProfileUtils"; // Ensure both functions are imported
+import { saveUserProfile, loadUserProfile, authenticatedFetch } from "../utils/userProfileUtils"; // Ensure both functions are imported
 
 // Register required components for Chart.js
 ChartJS.register(
@@ -129,12 +129,8 @@ const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
       console.log("Fetching log count for username:", username); // Debugging log
 
       try {
-        const response = await fetch(`http://localhost:5004/logs/${username}/count`, {
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
-        });
-        if (response.ok && isMounted) {
+        const response = await authenticatedFetch(`/logs/${username}/count`);
+        if (response && response.ok && isMounted) {
           const data = await response.json();
           setLogCount(data.count);
         } else {
@@ -158,14 +154,14 @@ const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
 
   const updateUserProfileInDB = async (username, weight, height) => {
     try {
-      const response = await fetch(`http://localhost:5004/user/${username}`, {
+      const response = await authenticatedFetch(`/user/${username}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ weight, height }),
       });
-      if (!response.ok) {
+      if (!response || !response.ok) {
         console.error("Failed to update user profile in the database.");
       }
     } catch (error) {
@@ -200,15 +196,14 @@ const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
   // Replace localStorage logic with database calls for saving logs
   const saveLogToDatabase = async (log) => {
     try {
-      const response = await fetch(`http://localhost:5004/logs/${username}`, {
+      const response = await authenticatedFetch(`/logs/${username}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
         },
         body: JSON.stringify(log),
       });
-      if (!response.ok) {
+      if (!response || !response.ok) {
         console.error("Failed to save log to the database.");
       }
     } catch (error) {

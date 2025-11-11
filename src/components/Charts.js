@@ -10,7 +10,7 @@ import {
   Legend,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
-import { loadUserProfile } from "../utils/userProfileUtils";
+import { loadUserProfile, authenticatedFetch } from "../utils/userProfileUtils";
 
 ChartJS.register(
   CategoryScale,
@@ -49,12 +49,8 @@ const Charts = () => {
 
     const fetchLogs = async () => {
       try {
-        const response = await fetch(`http://localhost:5004/logs/${userProfile.username}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        if (response.ok) {
+        const response = await authenticatedFetch(`/logs/${userProfile.username}`);
+        if (response && response.ok) {
           const data = await response.json();
           setLogs(Array.isArray(data.data) ? data.data : []);
         } else {

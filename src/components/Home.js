@@ -5,7 +5,7 @@ import Charts from "./Charts";
 import { authenticatedFetch } from "../utils/userProfileUtils";
 
 const fetchUserProfile = async (username) => {
-  const response = await authenticatedFetch(`http://localhost:5004/user/${username}`);
+  const response = await authenticatedFetch(`/user/${username}`);
   if (response && response.ok) {
     const data = await response.json();
     return data.data;
@@ -85,12 +85,8 @@ export default function Home({ onComplete, onLogout, onGoBack }) {
       }
 
       try {
-        const response = await fetch(`http://localhost:5004/logs/${userProfile.username}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        if (response.ok) {
+        const response = await authenticatedFetch(`/logs/${userProfile.username}`);
+        if (response && response.ok) {
           const data = await response.json();
           setLogs(Array.isArray(data.data) ? data.data : []); // Ensure data is an array
         } else {

@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
-
-// Utility function to get the JWT token
-const getToken = () => localStorage.getItem("token");
+import { authenticatedFetch } from "../utils/userProfileUtils";
 
 function History({ username }) {
   const [logs, setLogs] = useState([]); // Ensure logs is initialized as an empty array
@@ -11,12 +9,8 @@ function History({ username }) {
   // Fetch updated user profile after fetching logs
   const fetchUpdatedUserProfile = async () => {
     try {
-      const response = await fetch(`http://localhost:5004/user/${username}`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-      if (response.ok) {
+      const response = await authenticatedFetch(`/user/${username}`);
+      if (response && response.ok) {
         const data = await response.json();
         console.log("Updated user profile fetched:", data);
         window.dispatchEvent(
@@ -33,12 +27,8 @@ function History({ username }) {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const response = await fetch(`http://localhost:5004/logs/${username}`, {
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
-        });
-        if (response.ok) {
+        const response = await authenticatedFetch(`/logs/${username}`);
+        if (response && response.ok) {
           const data = await response.json();
           setLogs(Array.isArray(data.data) ? data.data : []); // Ensure data is an array
           await fetchUpdatedUserProfile(); // Fetch updated user profile
