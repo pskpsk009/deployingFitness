@@ -7,7 +7,7 @@ import Logger from "./components/Logger";
 import Home from "./components/Home";
 
 const App = () => {
-  const [currentStep, setCurrentStep] = useState("popup"); // Manage the current step in the flow
+  const [currentStep, setCurrentStep] = useState(process.env.REACT_APP_SKIP_POPUP === "true" ? "login" : "popup"); // Manage the current step in the flow
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
 
@@ -34,6 +34,17 @@ const App = () => {
 
     init();
   }, []);
+
+  // Safety: if popup is shown but something blocks progression (e.g. extension CSS),
+  // auto-advance to login after a short timeout so the app doesn't stay a white screen.
+  useEffect(() => {
+    if (currentStep !== "popup") return;
+    const fallback = setTimeout(() => {
+      console.warn("Popup fallback: switching to login after timeout");
+      setCurrentStep("login");
+    }, 3000);
+    return () => clearTimeout(fallback);
+  }, [currentStep]);
 
   // Add a debugging log to check if the token is retrieved from localStorage
   useEffect(() => {
