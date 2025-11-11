@@ -26,7 +26,7 @@ ChartJS.register(
   Legend
 );
 
-const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
+const FrontendLogger = ({ onComplete, onLogout, onGoBack, userProfile: userProfileProp, loading }) => {
   // Add username prop
   const [logHistory, setLogHistory] = useState([]);
   // initialize logHistory from localStorage so data persists across navigation
@@ -43,7 +43,7 @@ const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
     meal: "",
     calories: "",
   });
-  const [userProfile, setUserProfile] = useState(loadUserProfile()); // Load user profile from localStorage
+  const [userProfile, setUserProfile] = useState(userProfileProp || { username: "", weight: null, height: null });
   const [currentPage, setCurrentPage] = useState("main");
   const [showSidebar, setShowSidebar] = useState(false);
   const [previousPage, setPreviousPage] = useState("main"); // Track the previous page
@@ -67,19 +67,15 @@ const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
     }
   }, [userProfile]);
 
+  // Pick up app-level userProfile prop when it becomes available
   useEffect(() => {
-    const fetchProfile = async () => {
-      const profile = await loadUserProfile();
-      console.log("Fetched user profile:", profile); // Debugging log
-      setUserProfile(profile);
-    };
-    fetchProfile();
-  }, []);
+    if (userProfileProp) setUserProfile(userProfileProp);
+  }, [userProfileProp]);
 
   // Listen for profile updates and external log additions (from Home quick inputs)
   useEffect(() => {
     const onProfileUpdated = (e) => {
-      const updated = e.detail || loadUserProfile();
+      const updated = e.detail || userProfileProp || userProfile;
       setUserProfile(updated);
     };
 
@@ -116,20 +112,24 @@ const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
   // Utility function to get the JWT token
   const getToken = () => localStorage.getItem("token"); // Updated to use the correct key
 
+  const actualUsername = (userProfile && userProfile.username) || "";
+
   // Optimize fetchLogCount to avoid redundant requests
   useEffect(() => {
     let isMounted = true; // Track if the component is still mounted
 
     const fetchLogCount = async () => {
-      if (!username) {
-        console.error("Username is missing. Cannot fetch log count.");
+      if (loading) return; // wait until app initialization finishes
+      const actualUsername = userProfile && userProfile.username;
+      if (!actualUsername) {
+        console.warn("Username is missing. Skipping log count fetch until user is available.");
         return;
       }
 
-      console.log("Fetching log count for username:", username); // Debugging log
+      console.log("Fetching log count for username:", actualUsername); // Debugging log
 
       try {
-        const response = await authenticatedFetch(`/logs/${username}/count`);
+        const response = await authenticatedFetch(`/logs/${actualUsername}/count`);
         if (response && response.ok && isMounted) {
           const data = await response.json();
           setLogCount(data.count);
@@ -146,7 +146,7 @@ const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
     return () => {
       isMounted = false; // Prevent state updates if the component is unmounted
     };
-  }, [username]);
+  }, [loading, userProfile && userProfile.username]);
 
   const updateBMI = (weight, height) => {
     return (weight / (height / 100) ** 2).toFixed(2);
@@ -154,7 +154,7 @@ const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
 
   const updateUserProfileInDB = async (username, weight, height) => {
     try {
-      const response = await authenticatedFetch(`/user/${username}`, {
+    const response = await authenticatedFetch(`/user/${actualUsername}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -187,7 +187,7 @@ const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
   };
 
   // Debugging: Log the username and token before making requests
-  console.log("Username:", username);
+  console.log("Username:", actualUsername);
   console.log("Token:", getToken());
 
   // Debugging: Log the Authorization header before making requests
@@ -196,7 +196,7 @@ const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
   // Replace localStorage logic with database calls for saving logs
   const saveLogToDatabase = async (log) => {
     try {
-      const response = await authenticatedFetch(`/logs/${username}`, {
+  const response = await authenticatedFetch(`/logs/${actualUsername}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -226,7 +226,7 @@ const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
 
     setUserProfile((prev) => ({ ...prev, weight: updatedWeight }));
 
-    await updateUserProfileInDB(username, updatedWeight, userProfile.height);
+  await updateUserProfileInDB(actualUsername, updatedWeight, userProfile.height);
 
     const updatedLog = {
       type: "exercise",
@@ -267,7 +267,7 @@ const FrontendLogger = ({ onComplete, onLogout, username = "User" }) => {
 
     setUserProfile((prev) => ({ ...prev, weight: updatedWeight }));
 
-    await updateUserProfileInDB(username, updatedWeight, userProfile.height);
+  await updateUserProfileInDB(actualUsername, updatedWeight, userProfile.height);
 
     const updatedLog = {
       type: "meal",

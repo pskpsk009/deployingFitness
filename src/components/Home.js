@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import FrontendLogger from "./FrontendLogger";
 import History from "./History";
 import Charts from "./Charts";
-import { authenticatedFetch, loadUserProfile } from "../utils/userProfileUtils";
+import { authenticatedFetch } from "../utils/userProfileUtils";
 
 const headerStyle = {
   display: "flex",
@@ -44,19 +44,14 @@ const mainStyle = {
   alignItems: "flex-start",
 };
 
-export default function Home({ onComplete, onLogout, onGoBack }) {
+export default function Home({ onComplete, onLogout, onGoBack, userProfile: userProfileProp, loading }) {
   const [active, setActive] = useState("features");
-  const [userProfile, setUserProfile] = useState({ username: "", weight: null, height: null });
+  const [userProfile, setUserProfile] = useState(userProfileProp || { username: "", weight: null, height: null });
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
-    const loadProfile = async () => {
-      // Try to load the authenticated user's profile via /me
-      const profile = await loadUserProfile();
-      if (profile) setUserProfile(profile);
-    };
-    loadProfile();
-  }, []);
+    if (userProfileProp) setUserProfile(userProfileProp);
+  }, [userProfileProp]);
 
   useEffect(() => {
     if (userProfile.weight && userProfile.height) {
@@ -65,11 +60,12 @@ export default function Home({ onComplete, onLogout, onGoBack }) {
     }
   }, [userProfile.weight, userProfile.height]);
 
-  // Add a check to ensure username is valid before making the request
+  // Fetch logs only when app-level loading is finished and we have a username
   useEffect(() => {
     const fetchLogs = async () => {
-      if (!userProfile.username) {
-        console.error("Username is missing. Cannot fetch logs.");
+      if (loading) return; // wait until app initialization finishes
+      if (!userProfile || !userProfile.username) {
+        console.warn("Username is missing. Skipping logs fetch until user is available.");
         return;
       }
 
@@ -87,7 +83,7 @@ export default function Home({ onComplete, onLogout, onGoBack }) {
     };
 
     fetchLogs();
-  }, [userProfile.username]);
+  }, [loading, userProfile && userProfile.username]);
 
   return (
     <div
@@ -210,7 +206,8 @@ export default function Home({ onComplete, onLogout, onGoBack }) {
                   onComplete={onComplete}
                   onLogout={onLogout}
                   onGoBack={onGoBack}
-                  username={userProfile.username} // Pass the username from userProfile
+                  userProfile={userProfile}
+                  loading={loading}
                 />
               </div>
             </section>

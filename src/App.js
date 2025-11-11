@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { validateToken, saveUserProfile } from "./utils/userProfileUtils";
+import { loadUserProfile } from "./utils/userProfileUtils";
 import Advertisement from "./components/Advertisement";
 import AdvertisementPopup from "./components/AdvertisementPopup";
 import FrontendLogger from "./components/FrontendLogger";
@@ -8,44 +8,31 @@ import Home from "./components/Home";
 
 const App = () => {
   const [currentStep, setCurrentStep] = useState("popup"); // Manage the current step in the flow
+  const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState(null);
 
   useEffect(() => {
     console.log("Current step:", currentStep); // Debug log for state transitions
   }, [currentStep]);
 
-  // Update currentStep after token validation
+  // Load the authenticated profile at app startup and pick initial step
   useEffect(() => {
-    const checkToken = async () => {
-      const isValid = await validateToken();
-      if (isValid) {
-        setCurrentStep("frontendLogger"); // Transition to the next step if the token is valid
-      } else {
-        // If we're deployed to Netlify (or the admin enabled the force flag),
-        // load a safe demo user so the site shows a working demo without auth.
-        const forceDemo = process.env.REACT_APP_FORCE_DEFAULT_USER === "true";
-        const onNetlify = typeof window !== "undefined" && window.location.hostname.includes("netlify.app");
-        if (forceDemo || onNetlify) {
-          const demo = {
-            username: "demo",
-            weight: 70,
-            height: 170,
-            bmi: (70 / ((1.7 * 1.7))).toFixed(2),
-          };
-          try {
-            // store demo profile and a placeholder token so other code can operate
-            saveUserProfile(demo);
-            localStorage.setItem("token", "__demo__");
-          } catch (e) {
-            console.warn("Could not save demo profile to localStorage", e);
-          }
-          setCurrentStep("frontendLogger");
-        } else {
-          setCurrentStep("login"); // Redirect to login if the token is invalid
-        }
+    const init = async () => {
+      setLoading(true);
+      try {
+        const profile = await loadUserProfile();
+        setUserProfile(profile || null);
+        if (profile && profile.username) setCurrentStep("frontendLogger");
+        else setCurrentStep("login");
+      } catch (err) {
+        console.error("Failed to load user profile on startup:", err);
+        setCurrentStep("login");
+      } finally {
+        setLoading(false);
       }
     };
 
-    checkToken();
+    init();
   }, []);
 
   // Add a debugging log to check if the token is retrieved from localStorage
@@ -88,6 +75,8 @@ const App = () => {
           onComplete={handleFrontendLoggerComplete}
           onLogout={handleLogout}
           onGoBack={handleGoBack}
+          loading={loading}
+          userProfile={userProfile}
         />
       )}
       {currentStep === "logger" && <Logger />}
