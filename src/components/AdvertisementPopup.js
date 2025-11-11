@@ -5,8 +5,24 @@ const AdvertisementPopup = ({ onClose }) => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), 100); // Delay to trigger transition
-    return () => clearTimeout(timer);
+    const showTimer = setTimeout(() => setVisible(true), 100); // Delay to trigger transition
+    // Auto-close after a short delay so the popup doesn't permanently block the login UI
+    const autoCloseTimer = setTimeout(() => {
+      if (onClose) onClose();
+    }, 2500);
+
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        if (onClose) onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(autoCloseTimer);
+      window.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   return (
