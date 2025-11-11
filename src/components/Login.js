@@ -12,7 +12,9 @@ const Login = ({ onLogin }) => {
   const handleLogin = async () => {
     const { username, password } = credentials;
     try {
-      const url = `${API_BASE || "http://localhost:5004"}/login`;
+  // default to relative serverless function path when REACT_APP_API_URL is not set
+  const base = API_BASE || "";
+  const url = `${base}/api/login`;
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -22,14 +24,15 @@ const Login = ({ onLogin }) => {
       });
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
+        if (data.token) {
           localStorage.setItem("token", data.token); // Store JWT token
           onLogin();
         } else {
-          setError(data.message || "Invalid username or password.");
+          setError(data.error || "Invalid username or password.");
         }
       } else {
-        setError("Failed to connect to the server.");
+        const err = await response.json().catch(() => ({}));
+        setError(err.error || "Failed to connect to the server.");
       }
     } catch (err) {
       setError("An error occurred. Please try again later.");

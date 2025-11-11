@@ -1,5 +1,6 @@
 const USER_PROFILE_KEY = "userProfile";
-const API_BASE = process.env.REACT_APP_API_URL || "";
+// Default to the Vercel serverless path when env not provided
+const API_BASE = process.env.REACT_APP_API_URL || "/api";
 
 export const saveUserProfile = (profile) => {
   localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(profile));
@@ -20,10 +21,8 @@ export const authenticatedFetch = async (url, options = {}) => {
   };
 
   try {
-    const response = await fetch(
-      url.startsWith("http") ? url : `${API_BASE}${url}`,
-      { ...options, headers }
-    );
+    const fullUrl = url.startsWith("http") ? url : `${API_BASE}${url}`;
+    const response = await fetch(fullUrl, { ...options, headers });
     if (response.status === 401 || response.status === 403) {
       console.error("Token is invalid or expired.");
       localStorage.removeItem("token"); // Remove invalid token
@@ -37,16 +36,16 @@ export const authenticatedFetch = async (url, options = {}) => {
 };
 
 export const loadUserProfile = async () => {
-  // Call /me which returns the profile for the authenticated token
-  const response = await authenticatedFetch("/me");
+  // Use /me to load profile for the authenticated user
+  const response = await authenticatedFetch('/me');
   if (response) {
     if (response.ok) {
       const data = await response.json();
-      return data.data;
+      return data.user || data;
     }
-    console.error("Failed to fetch user profile. Status:", response.status);
+    console.error('Failed to fetch user profile. Status:', response.status);
   }
-  return { username: "", weight: null, height: null, bmi: null };
+  return { username: '', weight: null, height: null, bmi: null };
 };
 
 // validateToken returns true/false and does not navigate. Components should
@@ -59,7 +58,7 @@ export const validateToken = async () => {
   }
 
   try {
-    const response = await fetch(`${API_BASE}/validate-token`, {
+    const response = await fetch(`${API_BASE}/me`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
