@@ -2,17 +2,7 @@ import React, { useState, useEffect } from "react";
 import FrontendLogger from "./FrontendLogger";
 import History from "./History";
 import Charts from "./Charts";
-import { authenticatedFetch } from "../utils/userProfileUtils";
-
-const fetchUserProfile = async (username) => {
-  const response = await authenticatedFetch(`/user/${username}`);
-  if (response && response.ok) {
-    const data = await response.json();
-    return data.data;
-  }
-  console.error("Failed to fetch user profile.");
-  return null;
-};
+import { authenticatedFetch, loadUserProfile } from "../utils/userProfileUtils";
 
 const headerStyle = {
   display: "flex",
@@ -61,10 +51,9 @@ export default function Home({ onComplete, onLogout, onGoBack }) {
 
   useEffect(() => {
     const loadProfile = async () => {
-      const profile = await fetchUserProfile("User"); // Replace "User" with the logged-in username
-      if (profile) {
-        setUserProfile(profile);
-      }
+      // Try to load the authenticated user's profile via /me
+      const profile = await loadUserProfile();
+      if (profile) setUserProfile(profile);
     };
     loadProfile();
   }, []);
