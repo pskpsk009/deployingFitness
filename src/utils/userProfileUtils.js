@@ -1,14 +1,16 @@
-const USER_PROFILE_KEY = 'userProfile';
+const USER_PROFILE_KEY = "userProfile";
+const API_BASE = process.env.REACT_APP_API_URL || "";
 
 export const saveUserProfile = (profile) => {
   localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(profile));
 };
 
+// authenticatedFetch no longer performs direct navigation. It returns null on
+// missing/invalid tokens so calling code can handle navigation through React.
 export const authenticatedFetch = async (url, options = {}) => {
   const token = localStorage.getItem("token");
   if (!token) {
     console.error("No token found. User is not authenticated.");
-    window.location.href = "/login"; // Redirect to login page
     return null;
   }
 
@@ -18,11 +20,10 @@ export const authenticatedFetch = async (url, options = {}) => {
   };
 
   try {
-    const response = await fetch(url, { ...options, headers });
+    const response = await fetch(url.startsWith("http") ? url : `${API_BASE}${url}`, { ...options, headers });
     if (response.status === 401 || response.status === 403) {
-      console.error("Token is invalid or expired. Redirecting to login.");
+      console.error("Token is invalid or expired.");
       localStorage.removeItem("token"); // Remove invalid token
-      window.location.href = "/login"; // Redirect to login page
       return null;
     }
     return response;
@@ -33,7 +34,7 @@ export const authenticatedFetch = async (url, options = {}) => {
 };
 
 export const loadUserProfile = async () => {
-  const response = await authenticatedFetch("http://localhost:5004/user/User");
+  const response = await authenticatedFetch("/user/User");
   if (response) {
     if (response.ok) {
       const data = await response.json();
@@ -44,7 +45,8 @@ export const loadUserProfile = async () => {
   return { username: "", weight: null, height: null, bmi: null };
 };
 
-// Re-add and export the validateToken function
+// validateToken returns true/false and does not navigate. Components should
+// perform routing based on the result.
 export const validateToken = async () => {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -53,7 +55,7 @@ export const validateToken = async () => {
   }
 
   try {
-    const response = await fetch("http://localhost:5004/validate-token", {
+    const response = await fetch(`${API_BASE}/validate-token`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -64,7 +66,7 @@ export const validateToken = async () => {
       console.log("Token is valid.");
       return true;
     } else {
-      console.error("Token is invalid or expired. Redirecting to login.");
+      console.error("Token is invalid or expired.");
       localStorage.removeItem("token"); // Remove invalid token
       return false;
     }
