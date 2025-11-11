@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { validateToken } from "./utils/userProfileUtils";
+import { validateToken, saveUserProfile } from "./utils/userProfileUtils";
 import Advertisement from "./components/Advertisement";
 import AdvertisementPopup from "./components/AdvertisementPopup";
 import FrontendLogger from "./components/FrontendLogger";
@@ -20,7 +20,28 @@ const App = () => {
       if (isValid) {
         setCurrentStep("frontendLogger"); // Transition to the next step if the token is valid
       } else {
-        setCurrentStep("login"); // Redirect to login if the token is invalid
+        // If we're deployed to Netlify (or the admin enabled the force flag),
+        // load a safe demo user so the site shows a working demo without auth.
+        const forceDemo = process.env.REACT_APP_FORCE_DEFAULT_USER === "true";
+        const onNetlify = typeof window !== "undefined" && window.location.hostname.includes("netlify.app");
+        if (forceDemo || onNetlify) {
+          const demo = {
+            username: "demo",
+            weight: 70,
+            height: 170,
+            bmi: (70 / ((1.7 * 1.7))).toFixed(2),
+          };
+          try {
+            // store demo profile and a placeholder token so other code can operate
+            saveUserProfile(demo);
+            localStorage.setItem("token", "__demo__");
+          } catch (e) {
+            console.warn("Could not save demo profile to localStorage", e);
+          }
+          setCurrentStep("frontendLogger");
+        } else {
+          setCurrentStep("login"); // Redirect to login if the token is invalid
+        }
       }
     };
 
