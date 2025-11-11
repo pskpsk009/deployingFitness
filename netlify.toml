@@ -1,6 +1,7 @@
 [build]
-  command = "npm run build"
+  command = "cd backend && npm install --legacy-peer-deps && npx prisma generate && cd .. && npm run build"
   publish = "build"
+  functions = "backend/functions"
 
 [[redirects]]
   from = "/*"
