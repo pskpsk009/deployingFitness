@@ -30,8 +30,5 @@
     ">0.2%",
     "not dead",
     "not op_mini all"
-  ],
-  "devDependencies": {
-    "prisma": "^6.19.0"
-  }
+  ]
 }
